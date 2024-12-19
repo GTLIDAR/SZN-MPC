@@ -142,10 +142,8 @@ def template_model(symvar_type='SX'):
 
    x_g_digit = model.set_variable('_x', 'x_g_digit')
    y_g_digit = model.set_variable('_x', 'y_g_digit')
-   # s = model.set_variable('_u', 's')
 
    pf_x = model.set_variable('_u',  'pf_x')
-   #pf_y = model.set_variable('_u',  'pf_y')
    ud_theta = model.set_variable('_u', 'u_d_theta')
 
    w = np.sqrt(9.81/1.02)
@@ -157,15 +155,13 @@ def template_model(symvar_type='SX'):
 
    
 
-   x_g_n = x_g + (x_n*np.cos(d_theta_n)) #+ y_n*np.sin(d_theta) )
-
-   y_g_n = y_g + (x_n*np.sin(d_theta_n)) #+ y_n*np.cos(d_theta) )
+   x_g_n = x_g + (x_n*np.cos(d_theta_n)) 
+   y_g_n = y_g + (x_n*np.sin(d_theta_n)) 
 
 
    model.set_rhs('x_com', x_n)
    model.set_rhs('xd_com', xd_n)
-   #model.set_rhs('y_com', y_n)
-   #model.set_rhs('yd_com', yd_n)
+
 
    model.set_rhs('d_theta', d_theta_n)
    model.set_rhs('x_g', x_g_n)
@@ -223,19 +219,10 @@ def template_model(symvar_type='SX'):
    casadi_ego_model = do_mpc.sysid.ONNXConversion(ego_model)
    
 
-   # ped_model = onnx.load("ped_pedoptimal3_coupled_highpn_global_sum_size.onnx")
    ped_model = onnx.load("ped_pedoptimal4_coupled_highpn_global_sum_size.onnx")
    graph_ped = ped_model.graph
    i = 0
-   # print(ped_model.graph.input)
-   # for node in graph_ped.node:
-   #    print(i)
-   #    i = i + 1
-   #    print(f"Node Name: {node.name}")
-   #    print(f"Operation Type: {node.op_type}")
-   #    print(f"Input Names: {node.input}")
-   #    print(f"Output Names: {node.output}")
-   #    print("-----")
+  
 
    old_input_name = ped_model.graph.input[0].name
    new_input_name = 'past_input'
@@ -260,15 +247,7 @@ def template_model(symvar_type='SX'):
 
    casadi_ped_model = do_mpc.sysid.ONNXConversion(ped_model)
 
-   # print(ped_model.graph.input)
-   # for node in graph_ped.node:
-   #    print(i)
-   #    i = i + 1
-   #    print(f"Node Name: {node.name}")
-   #    print(f"Operation Type: {node.op_type}")
-   #    print(f"Input Names: {node.input}")
-   #    print(f"Output Names: {node.output}")
-   #    print("-----")
+  
 
    ped_Gr1 = SX.sym('ped_Gr', 16, 1) 
    for i in range(8):
@@ -282,7 +261,7 @@ def template_model(symvar_type='SX'):
    
    future_sum = ped_Gr1.T
       
-   input2 = model.tvp['goal_G'].T - horzcat(*[x_g, y_g]) #casadi.SX.sym("in2",1,2) ############# goal relative position 
+   input2 = model.tvp['goal_G'].T - horzcat(*[x_g, y_g]) 
    
    
    casadi_ego_model.convert(first_input=future_sum, second_input=input2, third_input=horzcat(*[x_n*np.cos(d_theta), x_n*np.sin(d_theta)]), fourth_input=z, verbose=False)
@@ -293,10 +272,9 @@ def template_model(symvar_type='SX'):
    
    output = casadi_ego_model['output']
    NN_output = reshape(output, (10,7))
-   # NN_output = reshape(casadi_converter['52'], (7,10))
    
 
-   center = NN_output.T[0,0:2] + horzcat(*[x_g, y_g]) #(horzcat(*[x_g_n, y_g_n]) + horzcat(*[x_g, y_g]))*0.5
+   center = NN_output.T[0,0:2] + horzcat(*[x_g, y_g]) 
    centern = NN_output.T[0,0:2] + horzcat(*[x_g_n, y_g_n])
 
  
@@ -315,14 +293,11 @@ def template_model(symvar_type='SX'):
       A_poly_in[i,1] =  1/L[i] * G[1,i]
 
    A_poly = vertcat(*[A_poly_in,-A_poly_in])
-   # print(A_poly.shape)
    ATc = A_poly @ center.T
    ATG = A_poly_in @ G
    ATG = vertcat(*[ATG,-ATG])
-   # print(ATG.shape)
    ones = SX.ones(8,1)
    b_poly = ATc + fabs(ATG) @ ones
-   # print(b_poly.shape)
    
 
   
@@ -343,14 +318,13 @@ def template_model(symvar_type='SX'):
       Mink_ones = SX.ones(12,1)
       Mink_b_poly = Mink_ATc + fabs(Mink_ATG) @ Mink_ones
 
-      # Mink_b_polyn = (Mink_A_poly @ centern.T) + fabs(Mink_ATG) @ Mink_ones
+      
 
       
 
       model.set_expression(f'obs_zono_conts{ped}', -mmax(Mink_A_poly@model.tvp[f'obs_loc{ped}'] - Mink_b_poly))
 
 
-  
    
    ######################## Solve for vertices for plotting################################
 
@@ -362,7 +336,6 @@ def template_model(symvar_type='SX'):
 
    model.set_expression('zonotope_const', mmax(A_poly@vertcat(*[x_g_n, y_g_n]) - b_poly))
 
-   # model.set_expression('zonotope_const2', mmax(A_poly2@vertcat(*[x_g_n, y_g_n]) - b_poly2))
 
 
    obs_zono_conts = []

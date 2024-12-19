@@ -88,24 +88,10 @@ train = 0
 # dataset = "Zara1_mpc"
 dataset = "students003_mpc"
 
-# orientation = 2.54
-
-# model_pt = EgoNet(hyper_params["enc_past_size"], hyper_params["enc_dest_size"], hyper_params["enc_latent_size"], hyper_params["dec_size"], hyper_params["predictor_hidden_size"], hyper_params["fdim"], hyper_params["zdim"], hyper_params["sigma"], hyper_params["past_length"], hyper_params["future_length"], args.verbose)
-# model_pt = EgoNet_sum(hyper_params["enc_past_size"], hyper_params["enc_dest_size"], hyper_params["enc_latent_size"], hyper_params["dec_size"], hyper_params["predictor_hidden_size"], hyper_params["pdim"], hyper_params["ddim"], hyper_params["fdim"], hyper_params["zdim"], hyper_params["sigma"], hyper_params["past_length"], hyper_params["future_length"], args.verbose)
-# model_pt = ZonoNet_sum(hyper_params["enc_past_size"], hyper_params["enc_dest_size"], hyper_params["enc_latent_size"], hyper_params["dec_size"], hyper_params["predictor_hidden_size"], hyper_params["pdim"], hyper_params["ddim"], hyper_params["fdim"], hyper_params["zdim"], hyper_params["sigma"], hyper_params["past_length"], hyper_params["future_length"], hyper_params["Ng"], args.verbose)
 model_pt = PECNet(hyper_params["enc_past_size"], hyper_params["enc_dest_size"], hyper_params["enc_latent_size"], hyper_params["dec_size"], hyper_params["predictor_hidden_size"], hyper_params["pdim"], hyper_params["ddim"], hyper_params["fdim"], hyper_params["zdim"], hyper_params["sigma"], hyper_params["past_length"], hyper_params["future_length"], hyper_params["Ng"], args.verbose)
-## get human data
-# test_past_list, test_goal_list, test_waypoint_list, test_past_list_g, test_goal_list_g, test_waypoint_list_g = get_seq_data('/home/ashamsah3/human_prediction/do-mpc/social_nav/datatext/students003_val.txt', 1, hyper_params["past_length"], hyper_params["future_length"])
+
 test_past_list, test_goal_list, test_waypoint_list, test_future_list, test_past_list_g, test_goal_list_g, test_waypoint_list_g, test_future_list_g  = read_from_pkl(dataset, batch_size, req_data_hist, req_future, radius, 0, dataset)
 start = 1
-# waypoint_x_0, waypoint_y_0 = pred_ego(3, model_pt, device, checkpoint, hyper_params, start, test_past_list, test_goal_list, test_waypoint_list, test_future_list)
-# waypoint_x_0, waypoint_y_0 , A_poly, b_poly, generator_vectorsnp, generator_matrices, generator_vectors, centers, ATG = pred_zono(3, model_pt, device, checkpoint, hyper_params, start, test_past_list, test_goal_list, test_waypoint_list, test_future_list, 0, 0)
-# print(A_poly[0,:,:].shape)
-
-# A_detach = A_poly.detach()
-# b_detach = b_poly.detach()
-# A_detach = np.array(A_detach.cpu().numpy())
-# b_detach = np.array(b_detach.cpu().numpy())
 
 num_steps = print(len(test_past_list))
 
@@ -114,7 +100,7 @@ j = 1
 ################## Social Model
 
 
-onnx_model = onnx.load("zono14_future_highpn_mean0201_stl.onnx") #onnx.load("zono13_batch_relu_reduce_size_nnextstate.onnx")
+onnx_model = onnx.load("zono14_future_highpn_mean0201_stl.onnx") 
 graph = onnx_model.graph
 
 
@@ -143,9 +129,7 @@ graph.node[-1].output[0] = 'output'
 
 social_model = do_mpc.sysid.ONNXConversion(onnx_model)
 
-# ped_model = onnx.load("ped_pedoptimal4_coupled_highpn_global_sum_size.onnx")
 ped_model = onnx.load("ped_pedoptimal5_coupled_highpn_global_sum_size.onnx")
-# ped_model = onnx.load("ped_pedoptimal6_coupled_highpn_global_sum_size.onnx")
 
 
 graph_ped = ped_model.graph
@@ -189,7 +173,6 @@ casadi_ped_model = do_mpc.sysid.ONNXConversion(ped_model)
 
 
 def generate_linear_trajectory_tensor(n, time_steps, start, finish):
-    # Initialize the trajectory tensor with zeros
     trajectory_tensor = np.zeros((n, time_steps, 2))
 
     for example_idx in range(n):
@@ -203,80 +186,25 @@ def generate_linear_trajectory_tensor(n, time_steps, start, finish):
     return torch.from_numpy(trajectory_tensor)
 
 
-# def generate_linear_trajectory_tensor(n, time_steps, start, finish):
-#     # Initialize the trajectory tensor with zeros
-#     trajectory_tensor = np.zeros((n, time_steps, 2))
-
-#     for example_idx in range(n):
-#         # Generate a linear interpolation from start to finish for x and y coordinates
-#         if start[0] < finish[0]:
-#             signx=1
-#         else:
-#             signx=-1
-        
-#         x_interp = np.arange(start[0], finish[0], signx* 0.15)
-#         if x_interp.shape[0] >= trajectory_tensor.shape[1]:
-#             trajectory_tensor[example_idx, :, 0] = x_interp[:time_steps] 
-#         else:
-#             trajectory_tensor[example_idx, :x_interp.shape[0], 0] = x_interp
-#             trajectory_tensor[example_idx, x_interp.shape[0]:, 0] = x_interp[-1]
-        
-#         if start[1] < finish[1]:
-#             signy=1
-#         else:
-#             signy=-1
-        
-#         y_interp = np.arange(start[1], finish[1], signy*0.15)
-#         if y_interp.shape[0] >= trajectory_tensor.shape[1]:
-#             trajectory_tensor[example_idx, :, 1] = y_interp[:time_steps] 
-#         else:
-#             trajectory_tensor[example_idx, :y_interp.shape[0], 1] = y_interp
-#             trajectory_tensor[example_idx, y_interp.shape[0]:, 1] = y_interp[-1] 
-
-        
-#     return torch.from_numpy(trajectory_tensor)
 
 def euclidean_distance(coord1, coord2):
 
     return np.sqrt(coord1**2 + coord2**2)
 
 def remove_tensors_over_distance(tensors, r):
-    # Extract the coordinates from the tensors
     coordinates = tensors[:, -1, :]
 
-    # print(coordinates)
 
-    # Create a mask to keep track of tensors within distance "r"
     keep_mask = np.ones(len(coordinates[:]), dtype=bool)
-
-    # Check distances between each pair of tensors
     for i in range(len(coordinates)):
-        # for j in range(i + 1, len(coordinates)):
         dist = euclidean_distance(coordinates[i,0], coordinates[i,1])
         if dist > r:
-            # Mark both tensors for removal
             keep_mask[i] = False
-            # keep_mask[j] = False
-
-    # Keep only the tensors that are within distance "r"
+           
     filtered_tensors = tensors[keep_mask]
 
     return filtered_tensors, keep_mask
 
-
-# ped = 1 # Number of examples
-# time_steps = 400  # Number of time steps
-    
-# st = np.random.randint(12, size=2)
-# finish = np.random.randint(12, size=2)
-# pedestrians = generate_linear_trajectory_tensor(ped, time_steps, st, finish)
-# all_ped = pedestrians
-
-# for num in range (ped_number):
-#     st = np.random.uniform(low=-2.0, high=14, size=2) #(13, size=2)
-#     finish = np.random.uniform(low=-2.0, high=14, size=2) #np.random.randint(13, size=2)
-#     pedestrians = generate_linear_trajectory_tensor(ped, time_steps, st, finish)
-#     all_ped = torch.cat((all_ped, pedestrians),dim=0)
 
 ped = 1 # Number of examples
 time_steps = 120  # Number of time steps
@@ -375,23 +303,14 @@ def template_mpc(model):
 
     mpc.bounds['lower', '_x', 'x_com'] = -0.2
     mpc.bounds['lower', '_x', 'xd_com'] = -0.1
-    #mpc.bounds['lower', '_x', 'y_com'] = -0.5
-    #mpc.bounds['lower', '_x','yd_com'] = -1
-    # mpc.bounds['lower', '_x', 'd_theta'] 
-    # mpc.bounds['lower', '_u', 's'] = 0.8
-    # mpc.bounds['upper', '_u', 's'] = 1.0
-
+  
     mpc.bounds['upper', '_x', 'x_com'] = 0.2
     mpc.bounds['upper', '_x', 'xd_com'] = 1.0
 
-    # mpc.bounds['lower','_u','u',2] =  -0.3
-    # mpc.bounds['upper','_u','u',2] =  0.3
     mpc.bounds['lower','_u', 'pf_x'] = -0.1
-    #mpc.bounds['lower','_u',  'pf_y'] = -0.6
     mpc.bounds['lower','_u','u_d_theta'] = -0.2617
 
     mpc.bounds['upper','_u', 'pf_x'] =0.4
-    #mpc.bounds['upper','_u',  'pf_y'] = 0.6
     mpc.bounds['upper','_u','u_d_theta'] = 0.2617
 
    
@@ -424,10 +343,6 @@ def template_mpc(model):
         
 
 
-
-
-        
-
         global j
         
         
@@ -436,8 +351,6 @@ def template_mpc(model):
         global orientation
         
 
-        # tvp_template['_tvp',:, 'ped_Gx'] = np.zeros((8,1))*2
-        # tvp_template['_tvp',:, 'ped_Gy'] = np.zeros((8,1))*2
         for i in range(ped_number):
             tvp_template['_tvp',:, f'obs_loc{i}'] = np.array([0, 0]) 
             tvp_template['_tvp',:, f'obs_loc{i}n'] = np.array([-10, -10])  
@@ -446,67 +359,10 @@ def template_mpc(model):
             tvp_template['_tvp',:, f'ped_G{i}3'] = numpy.array([0.002, 0.0001])
             tvp_template['_tvp',:, f'ped_G{i}4'] = numpy.array([0.0001, 0.002]) 
 
-            # tvp_template['_tvp',:, 'ped_past'] = np.zeros((ped_number,16)).T
-            # tvp_template['_tvp',:, 'ped_init'] = np.zeros((ped_number,2)).T
+        
         # 
         tvp_template['_tvp',:, 'GP_G'] = numpy.array([[0.0001, 0.0],[0.0, 0.001]])
 
-        # tvp_template['_tvp',:, 'ped_G11'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G12'] = numpy.array([0.0001, 0.002])
-        # tvp_template['_tvp',:, 'ped_G13'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G14'] = numpy.array([0.0001, 0.002])
-
-        # tvp_template['_tvp',:, 'ped_G21'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G22'] = numpy.array([0.0001, 0.002])
-        # tvp_template['_tvp',:, 'ped_G23'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G24'] = numpy.array([0.0001, 0.002])
-
-        # tvp_template['_tvp',:, 'ped_G31'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G32'] = numpy.array([0.0001, 0.002])
-        # tvp_template['_tvp',:, 'ped_G33'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G34'] = numpy.array([0.0001, 0.002])
-
-        # tvp_template['_tvp',:, 'ped_G41'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G42'] = numpy.array([0.0001, 0.002])
-        # tvp_template['_tvp',:, 'ped_G43'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G44'] = numpy.array([0.0001, 0.002])
-
-        # tvp_template['_tvp',:, 'ped_G51'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G52'] = numpy.array([0.0001, 0.002])
-        # tvp_template['_tvp',:, 'ped_G53'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G54'] = numpy.array([0.0001, 0.002])
-
-        # tvp_template['_tvp',:, 'ped_G61'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G62'] = numpy.array([0.0001, 0.002])
-        # tvp_template['_tvp',:, 'ped_G63'] = numpy.array([0.002, 0.0001])
-        # tvp_template['_tvp',:, 'ped_G64'] = numpy.array([0.0001, 0.002])
-
-       
-        
-
-        # tvp_template['_tvp',:, 'obs_loc'] = np.array([0, 0]) 
-        # tvp_template['_tvp',:, 'obs_loc2'] = np.array([0, 0]) 
-        # tvp_template['_tvp',:, 'obs_loc3'] = np.array([0, 0]) 
-        
-        # tvp_template['_tvp',:, 'obs_loc4'] = np.array([0, 0]) 
-        # tvp_template['_tvp',:, 'obs_loc5'] = np.array([0, 0]) 
-        # tvp_template['_tvp',:, 'obs_loc6'] = np.array([0, 0]) 
-
-        # tvp_template['_tvp',:, 'obs_locn'] = np.array([-10, -10]) 
-        # tvp_template['_tvp',:, 'obs_loc2n'] = np.array([-10, -10]) 
-        # tvp_template['_tvp',:, 'obs_loc3n'] = np.array([-10, -10]) 
-        
-        # tvp_template['_tvp',:, 'obs_loc4n'] = np.array([-10, -10]) 
-        # tvp_template['_tvp',:, 'obs_loc5n'] = np.array([-10, -10]) 
-        # tvp_template['_tvp',:, 'obs_loc6n'] = np.array([-10, -10]) 
-        
-        
-        # start = 17
-        
-        # test_past_list[j] - new_torch 
-        # waypoint_x, waypoint_y = pred_ego(3, model_pt, device, checkpoint, hyper_params, j, test_past_list, test_goal_list, test_waypoint_list)
-
-        
         if int_ind > 2:
             
             xpred = mpc.data.prediction(('_x', 'x_g')) # curr to next 
@@ -538,36 +394,6 @@ def template_mpc(model):
             
             tensor_robot_loc[0,:,:] = torch.FloatTensor(np.column_stack((xcurr_stack.T,ycurr_stack.T)))
 
-            
-
-            
-            ######## custom pedestrians 
-            # ped = 1 # Number of examples
-            # time_steps = 100  # Number of time steps
-            
-            # st = np.array([8.0, 8.0])  # Start point (x, y)
-            # finish = np.array([0.0, 0.0]) 
-            # pedestrians = generate_linear_trajectory_tensor(ped, time_steps, st, finish)
-
-            # st = np.array([14.0, 4.0])  # Start point (x, y)
-            # finish = np.array([-14.0, 4.0])  # Finish point (x, y)
-            # pedestrians2 = generate_linear_trajectory_tensor(ped, time_steps, st, finish)
-
-            # st = np.array([3, 0.0])  # Start point (x, y)
-            # finish = np.array([3, 16.0])  # Finish point (x, y)
-            # pedestrians3 = generate_linear_trajectory_tensor(ped, time_steps, st, finish)
-
-            # st = np.array([7.0, 12.0])  # Start point (x, y)
-            # finish = np.array([7.0, -1.0]) # Finish point (x, y)
-            # pedestrians4 = generate_linear_trajectory_tensor(ped, time_steps, st, finish)
-
-            # st = np.array([0.0, 0.0])  # Start point (x, y)
-            # finish = np.array([8.0, 8.0]) 
-            # pedestrians5 = generate_linear_trajectory_tensor(ped, time_steps, st, finish)
-
-            # st = np.array([7.0, 5.8])  # Start point (x, y)
-            # finish = np.array([7.0, 5.8]) 
-            # pedestrians6 = generate_linear_trajectory_tensor(ped, time_steps, st, finish)
 
             time_Step = 10+int_ind
             past_Step= 2+int_ind
@@ -615,60 +441,18 @@ def template_mpc(model):
             
 
             
-            # all_ped = torch.cat((pedestrians, pedestrians2, pedestrians3,pedestrians4,pedestrians5,pedestrians6),dim=0)
-            
 
             test_past_list[start+j] =  all_ped - tensor_robot_loc #for simulation using Sgan
-            # print[test_past_list[start+j].shape]
             filtered, keep_mask = remove_tensors_over_distance(test_past_list[start+j], 4)
-            # test_past_list[start+j] = all_ped[:,past_Step:time_Step,:][keep_mask]
             for i in range(ped_number):
                 tvp_template['_tvp',:, f'obs_loc{i}g'] = np.array([all_ped[i,-1,0],all_ped[i,-1,1]])
                 tvp_template['_tvp',:, f'obs_loc{i}ng'] = np.array([all_ped[i,0,0],all_ped[i,0,1]])
 
-            # -------------- Fully coupled 
-            # tvp_template['_tvp',:, 'ped_past'] = (test_past_list[start+j].contiguous().view(-1, test_past_list[start+j].shape[1]*test_past_list[start+j].shape[2])).numpy()
-            # tvp_template['_tvp',:, 'ped_init'] = (test_past_list[start+j].contiguous().view(-1, test_past_list[start+j].shape[1]*test_past_list[start+j].shape[2]))[:,:2].numpy()
 
             test_past_list[start+j] =  all_ped[keep_mask]
 
             
 
-
-            
-
-
-            # ------------- Fixed traj
-            # test_past_list[start+j] =  all_ped[:,past_Step:time_Step,:] - tensor_robot_loc
-
-            # for i in range(ped_number):
-            #     tvp_template['_tvp',:, f'obs_loc{i}g'] = np.array([all_ped[i,time_Step,0],all_ped[i,time_Step,1]])
-            #     tvp_template['_tvp',:, f'obs_loc{i}ng'] = np.array([all_ped[i,time_Step+1,0],all_ped[i,time_Step+1,1]])
-
-            # filtered, keep_mask = remove_tensors_over_distance(test_past_list[start+j], 4)
-            # # tvp_template['_tvp',:, 'ped_past'] = (filtered.contiguous().view(-1, filtered.shape[1]*filtered.shape[2])).numpy()
-            # # tvp_template['_tvp',:, 'ped_init'] = (filtered.contiguous().view(-1, filtered.shape[1]*filtered.shape[2]))[:,-2:].numpy()
-            
-            # test_past_list[start+j] = all_ped[:,past_Step:time_Step,:][keep_mask]
-
-            
-
-            
-
-            
-
-           
-
-            
-            # test_past_list[start+j] =  (test_past_list_g[start+j] - tensor_robot_loc).flip(1)
-            # # print(test_past_list[start+j].shape)
-            # tvp_template['_tvp',:, 'ped_past'] = (test_past_list[start+j].contiguous().view(-1, test_past_list[start+j].shape[1]*test_past_list[start+j].shape[2])).numpy()
-            # tvp_template['_tvp',:, 'ped_init'] = (test_past_list[start+j].contiguous().view(-1, test_past_list[start+j].shape[1]*test_past_list[start+j].shape[2]))[:,-2:].numpy()
-            # test_future_list[start+j] = test_future_list_g[start+j] - tensor_robot_loc
-            # filtered, keep_mask = remove_tensors_over_distance(test_past_list[start+j], 4)
-            # # filtered_fut, _ = remove_tensors_over_distance(test_future_list[start+j], 4)
-            # test_past_list[start+j] = test_past_list_g[start+j][:, :, :][keep_mask].flip(1)
-            # test_future_list[start+j] = filtered_fut
 
             tvp_template['_tvp',:, 'ped_num_flag'] = ped_num_flag
 
@@ -679,12 +463,10 @@ def template_mpc(model):
                 ped_num = ped_number
 
             ped_adj[:ped_num,:] = np.zeros((ped_num,16))
-            tvp_template['_tvp',:, 'ped_num_adj']  = ped_adj#np.ones((16,1))*(ped_number - ped_num)*10
+            tvp_template['_tvp',:, 'ped_num_adj']  = ped_adj
             ped_num_flag[:ped_num,:] = np.ones((ped_num,1))
             tvp_template['_tvp',:, 'ped_num_flag'] = ped_num_flag
             
-            # print(ped_past_zero[:ped_num,:].shape)
-            # print((test_past_list[start+j].contiguous().view(-1, test_past_list[start+j].shape[1]*test_past_list[start+j].shape[2])).numpy().shape)
             ped_past_zero[:ped_num,:] = (test_past_list[start+j].contiguous().view(-1, test_past_list[start+j].shape[1]*test_past_list[start+j].shape[2])).numpy()
             tvp_template['_tvp',:, 'ped_past'] = ped_past_zero #- tensor_robot_loc.numpy().reshape(1,16)
             tvp_template['_tvp',:, 'ped_init'] = ped_past_zero[:,-2:] #- tensor_robot_loc.numpy().reshape(1,16)[:,-2:]
@@ -693,15 +475,7 @@ def template_mpc(model):
 
             ped_centers, ped_generator_vectors1 = ped_pred_zono(1, model_pt, device, checkpoint, hyper_params,  start+j, test_past_list, test_future_list)
 
-            # print('##############################   ', ped_num)
-
-            
-
-
-            # xcurr_stack = np.ones(8) * xpred[0,n]
-            # ycurr_stack = np.ones(8) * ypred[0,n]
-
-                
+            #
             k = 0
             i = 0
 
@@ -710,33 +484,6 @@ def template_mpc(model):
 
             z = model.tvp['z_tvp'].T
    
-            # casadi_converter.convert(first_input=input1, second_input=input2, third_input=horzcat(*[xd_n, d_theta_n]), fourth_input=z, verbose=False)
-            
-            
-                
-
-                
-            ######## TXT pedestrians 
-            
-            # test_past_list[start+j] =  test_past_list_g[start+j] - tensor_robot_loc
-            # test_future_list[start+j] = test_future_list_g[start+j] - tensor_robot_loc
-            # filtered, keep_mask = remove_tensors_over_distance(test_past_list[start+j], 4)
-            # filtered_fut, _ = remove_tensors_over_distance(test_future_list[start+j], 4)
-            # test_past_list[start+j] = test_past_list_g[start+j][:, :, :][keep_mask]
-            # test_future_list[start+j] = filtered_fut
-
-            
-
-            # ped_num = test_past_list[start+j].numpy().shape[0]
-            # if ped_num > 6:
-            #     ped_num = 6
-            
-            # tvp_template['_tvp',:, 'ped_num'] = ped_num
-
-            # ped_centers, ped_generator_vectors1 = ped_pred_zono(1, model_pt, device, checkpoint, hyper_params,  start+j, test_past_list, test_future_list)
-
-            # print('##############################   ', ped_num)
-
             if ped_num > 0:
 
                 for n in range(setup_mpc['n_horizon']):   
@@ -785,13 +532,12 @@ def template_mpc(model):
 
 
 
-                input1 = social_ped_Gr1.T #ped_Gr.T ############# pedestrians relative position 
+                input1 = social_ped_Gr1.T 
                 input2 = numpy.array([xg-xpred[0,0], yg-ypred[0,0]]).T
                 z = torch.empty(1, 16)
                 z.normal_(0, 1.3)
                 z = z.numpy()
 
-                # social_model.convert(first_input=input1, second_input=input2, third_input=0.1*numpy.array([xg-xpred[0,0], yg-ypred[0,0]]).T, fourth_input=z, verbose=False)
                 social_model.convert(first_input=input1, second_input=input2, third_input=numpy.array([xpred[0,1]-xpred[0,0], ypred[0,1]-ypred[0,0]]).T, fourth_input=z, verbose=False)
                 social_output = social_model['output']
                 social_output = np.reshape(social_output, (7,10))
@@ -810,29 +556,27 @@ def template_mpc(model):
                         tvp_template['_tvp',n, f'ped_G{i}4'] = numpy.array([ped_generator_vectors1[i,n,3,0], ped_generator_vectors1[i,n,3,1]]) 
                 
                     if n == 0:
-                        # print(np.tile(past_input, (ped_number // ped_num + 1, 1)).shape)
                         ped_past_zero[:ped_num,:] = past_input
-                        tvp_template['_tvp',:, 'ped_past'] = ped_past_zero #np.tile(past_input, (ped_number // ped_num + 1, 1)) #ped_past_zero #- tensor_robot_loc.numpy().reshape(1,16)
-                        tvp_template['_tvp',:, 'ped_init'] = ped_past_zero[:,-2:] #np.tile(init_pos, (ped_number // ped_num + 1, 1)) #ped_past_zero[:,-2:] #- tensor_robot_loc.numpy().reshape(1,16)[:,-2:]
+                        tvp_template['_tvp',:, 'ped_past'] = ped_past_zero 
+                        tvp_template['_tvp',:, 'ped_init'] = ped_past_zero[:,-2:] 
                     else:
                         ped_centers_h = np.ones((ped_number,2))*-10
-                        # print(ped_centers.shape)
-                        # print(np.array([ped_centers[:,n,0]+xpred[0,0], ped_centers[:,n,1]+ypred[0,0]]).shape)
+                        
                         ped_centers_h[:ped_num,:] = np.array([ped_centers[:,n,0], ped_centers[:,n,1]]).T
                         
-                        new_ped_past_zero = np.concatenate([ped_past_zero[:,2:],ped_centers_h], axis=1) #np.tile(past_input, (ped_number // ped_num + 1, 1))[:, 2:]], axis=1)
+                        new_ped_past_zero = np.concatenate([ped_past_zero[:,2:],ped_centers_h], axis=1) 
                         ped_past_zero = new_ped_past_zero
 
-                        tvp_template['_tvp',n, 'ped_past'] = ped_past_zero #new_ped_past_zero #-  tensor_robot_loc.numpy().reshape(1,16)
-                        tvp_template['_tvp',n, 'ped_init'] = ped_past_zero[:,-2:] # new_ped_past_zero[:,-2:] #- tensor_robot_loc.numpy().reshape(1,16)[:,-2:]
+                        tvp_template['_tvp',n, 'ped_past'] = ped_past_zero 
+                        tvp_template['_tvp',n, 'ped_init'] = ped_past_zero[:,-2:] 
 
                         
 
 
                    
 
-                    tvp_template['_tvp',:, 'ped_Gx1'] = np.sum(pedx_fut, axis=0).T #np.sum(np.flip(ped_x, axis=0), axis=1).T
-                    tvp_template['_tvp',:, 'ped_Gy1'] = np.sum(pedy_fut, axis=0).T #np.sum(np.flip(ped_y, axis=0), axis=1).T
+                    tvp_template['_tvp',:, 'ped_Gx1'] = np.sum(pedx_fut, axis=0).T 
+                    tvp_template['_tvp',:, 'ped_Gy1'] = np.sum(pedy_fut, axis=0).T 
                     
                     tvp_template['_tvp',n, 'xg_running'] = social_waypoints[n+1,0]
                     tvp_template['_tvp',n, 'yg_running'] = social_waypoints[n+1,1]
@@ -841,18 +585,7 @@ def template_mpc(model):
                     theta_g = np.arctan2(social_waypoints[-1,1]-ypred[0,0],social_waypoints[-1,0]-xpred[0,0]) 
                     tvp_template['_tvp',n,'theta_g']  = (theta_g + np.pi) % (2 * np.pi) - np.pi
 
-                    # tvp_template['_tvp',n, 'ped_G'] = test_past_list_g[startj+n][0:2,:].view(2,16).numpy().T
-                    
-                # tvp_template['_tvp',n, 'obs_loc'] = np.array([test_past_list_g[start+j+n][0,0,0], test_past_list_g[start+j+n][0,0,1]])
-                
-                # obsx = test_past_list_g[start+j+n][:,0,0].numpy() - xpred[0,0]
-                # obsy = test_past_list_g[start+j+n][:,0,1].numpy() - ypred[0,0]
-                # dist = ((obsx)**2 + (obsy)**2)**0.5
-            
-                # closest_obs_ind = np.argmin(dist)
-                # tvp_template['_tvp',:, 'obs_loc'] = np.array([5, 5])
-
-                # tvp_template['_tvp',n, 'obs_loc'] = np.array([8-0.1*(int_ind-1),5.0])#
+                 
                 if np.sqrt((yg-ypred[0,0])**2+(xg-xpred[0,0])**2) <3:
                     tvp_template['_tvp',:, 'xg_running'] = xg
                     tvp_template['_tvp',:, 'yg_running'] = yg
